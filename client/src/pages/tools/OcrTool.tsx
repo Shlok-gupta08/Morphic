@@ -32,15 +32,20 @@ export default function OcrTool() {
     mode: OcrMode;
     results: PreviewResult[];
     activeResultId: string | null;
+
     extractedText: string;
+    closedResults: PreviewResult[];
   }>('ocr-tool', {
     files: [],
     lang: 'eng',
     mode: 'image',
     results: [],
     activeResultId: null,
-    extractedText: ''
+
+    extractedText: '',
+    closedResults: []
   });
+
 
   // Transient state (not persisted)
   const [status, setStatus] = useState<ProcessingStatus>('idle');
@@ -100,6 +105,28 @@ export default function OcrTool() {
     }
   };
 
+
+
+  const handleCloseResult = (id: string) => {
+    const resultToClose = state.results.find(r => r.id === id);
+    if (!resultToClose) return;
+
+    setState(prev => ({
+      ...prev,
+      results: prev.results.filter(r => r.id !== id),
+      closedResults: [...(prev.closedResults || []), resultToClose],
+      activeResultId: prev.activeResultId === id ? null : prev.activeResultId
+    }));
+  };
+
+  const handleRestoreResults = () => {
+    setState(prev => ({
+      ...prev,
+      results: [...prev.results, ...(prev.closedResults || [])],
+      closedResults: []
+    }));
+  };
+
   if (isLoading) return null; // Or a loading spinner
 
   return (
@@ -127,6 +154,9 @@ export default function OcrTool() {
               if (isOriginal) setState(prev => ({ ...prev, activeResultId: null }));
               else if (id) setState(prev => ({ ...prev, activeResultId: id }));
             }}
+            onClose={handleCloseResult}
+            onRestore={handleRestoreResults}
+            closedCount={(state.closedResults || []).length}
           />
         ) : undefined
       }
@@ -144,48 +174,54 @@ export default function OcrTool() {
             </button>
 
             {/* Save/Download Actions (Only if result is ACTIVE or Done) */}
-            {state.mode === 'pdf' && activeResult && status === 'done' && (
-              <div className="flex gap-2 animate-fade-in text-nowrap">
-                <button
-                  onClick={() => saveFile(activeResult.blob, activeResult.name)}
-                  className="bg-surface-200 hover:bg-surface-300 text-ink rounded-xl px-4 flex items-center justify-center gap-2 font-medium transition-colors cursor-grab active:cursor-grabbing"
-                  title="Save File (Drag to move)"
-                  draggable={true}
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData('application/x-file-converter-result', 'true');
-                    const fileToDrop = activeResult.blob instanceof File ? activeResult.blob : new File([activeResult.blob], activeResult.name);
-                    // @ts-ignore
-                    window.__draggedResultFile = fileToDrop;
-                  }}
-                >
-                  <Save className="w-4 h-4" />
-                  <span className="hidden sm:inline text-sm">Save</span>
-                </button>
-                <button
-                  onClick={() => downloadBlob(activeResult.blob, activeResult.name)}
-                  className="bg-accent-400 text-surface-50 hover:bg-accent-500 rounded-xl px-4 flex items-center justify-center gap-2 font-bold transition-colors shadow-lg shadow-accent-400/20"
-                  title="Download"
-                >
-                  <Download className="w-4 h-4" />
-                  <span className="hidden sm:inline text-sm">Download</span>
-                </button>
-              </div>
-            )}
-          </div>
+            {
+              state.mode === 'pdf' && activeResult && status === 'done' && (
+                <div className="flex gap-2 animate-fade-in text-nowrap">
+                  <button
+                    onClick={() => saveFile(activeResult.blob, activeResult.name)}
+                    className="bg-surface-200 hover:bg-surface-300 text-ink rounded-xl px-4 flex items-center justify-center gap-2 font-medium transition-colors cursor-grab active:cursor-grabbing"
+                    title="Save File (Drag to move)"
+                    draggable={true}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('application/x-file-converter-result', 'true');
+                      const fileToDrop = activeResult.blob instanceof File ? activeResult.blob : new File([activeResult.blob], activeResult.name);
+                      // @ts-ignore
+                      window.__draggedResultFile = fileToDrop;
+                    }}
+                  >
+                    <Save className="w-4 h-4" />
+                    <span className="hidden sm:inline text-sm">Save</span>
+                  </button>
+                  <button
+                    onClick={() => downloadBlob(activeResult.blob, activeResult.name)}
+                    className="bg-accent-400 text-surface-50 hover:bg-accent-500 rounded-xl px-4 flex items-center justify-center gap-2 font-bold transition-colors shadow-lg shadow-accent-400/20"
+                    title="Download"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span className="hidden sm:inline text-sm">Download</span>
+                  </button>
+                </div>
+              )
+            }
+          </div >
 
-          {state.mode === 'pdf' && (
-            <ProcessingResult
-              status={status}
-              result={activeResult?.blob}
-              filename={activeResult?.name}
-              error={error}
-              progress={progress}
-            />
-          )}
-          {state.mode === 'image' && status === 'error' && (
-            <ProcessingResult status="error" error={error} />
-          )}
-        </div>
+          {
+            state.mode === 'pdf' && (
+              <ProcessingResult
+                status={status}
+                result={activeResult?.blob}
+                filename={activeResult?.name}
+                error={error}
+                progress={progress}
+              />
+            )
+          }
+          {
+            state.mode === 'image' && status === 'error' && (
+              <ProcessingResult status="error" error={error} />
+            )
+          }
+        </div >
       }
     >
       <FileDropzone
@@ -198,132 +234,136 @@ export default function OcrTool() {
         hint="Supports PNG, JPG, TIFF, BMP, WebP, PDF"
       />
 
-      {state.files.length > 0 && (
-        <div
-          className="p-6 rounded-2xl space-y-5"
-          style={{
-            backgroundColor: 'rgb(var(--surface-100))',
-            border: '1px solid rgb(var(--surface-300))',
-          }}
-        >
-          {/* Mode toggle */}
-          <div>
-            <label
-              className="text-xs font-medium uppercase tracking-wider mb-3 block"
-              style={{ color: 'rgb(var(--ink-muted))' }}
-            >
-              Mode
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { value: 'image' as OcrMode, label: 'Extract Text', desc: 'Get plain text from image', icon: Image },
-                { value: 'pdf' as OcrMode, label: 'Searchable PDF', desc: 'Add text layer to scanned PDF', icon: FileText },
-              ].map((m) => (
-                <button
-                  key={m.value}
-                  onClick={() => setState(prev => ({ ...prev, mode: m.value }))}
-                  className="p-4 rounded-xl text-left transition-all border flex items-start gap-3"
-                  style={{
-                    backgroundColor:
-                      state.mode === m.value ? 'rgb(var(--accent-50))' : 'rgb(var(--surface-200))',
-                    borderColor:
-                      state.mode === m.value ? 'rgb(var(--accent-400))' : 'rgb(var(--surface-300))',
-                  }}
-                >
-                  <m.icon
-                    className="w-5 h-5 shrink-0 mt-0.5"
-                    style={{
-                      color: state.mode === m.value ? 'rgb(var(--accent-400))' : 'rgb(var(--ink-faint))',
-                    }}
-                  />
-                  <div>
-                    <p
-                      className="text-sm font-medium"
-                      style={{
-                        color: state.mode === m.value ? 'rgb(var(--accent-400))' : 'rgb(var(--ink))',
-                      }}
-                    >
-                      {m.label}
-                    </p>
-                    <p
-                      className="text-[11px] mt-0.5"
-                      style={{ color: 'rgb(var(--ink-faint))' }}
-                    >
-                      {m.desc}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Language */}
-          <div>
-            <label
-              className="text-xs font-medium uppercase tracking-wider mb-2 block"
-              style={{ color: 'rgb(var(--ink-muted))' }}
-            >
-              Language
-            </label>
-            <select
-              value={state.lang}
-              onChange={(e) => setState(prev => ({ ...prev, lang: e.target.value }))}
-              className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
-              style={{
-                backgroundColor: 'rgb(var(--surface-200))',
-                border: '1px solid rgb(var(--surface-300))',
-                color: 'rgb(var(--ink))',
-              }}
-            >
-              {LANGUAGES.map((l) => (
-                <option key={l.value} value={l.value}>
-                  {l.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Button moved to action area */}
-        </div>
-      )}
-
-      {/* Extracted text result */}
-      {status === 'done' && state.mode === 'image' && state.extractedText && (
-        <div
-          className="p-6 rounded-2xl space-y-3"
-          style={{
-            backgroundColor: 'rgb(var(--surface-100))',
-            border: '1px solid rgb(var(--surface-300))',
-          }}
-        >
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium uppercase tracking-wider" style={{ color: 'rgb(var(--ink-muted))' }}>
-              Extracted Text
-            </p>
-            <button
-              onClick={() => navigator.clipboard.writeText(state.extractedText)}
-              className="text-xs px-3 py-1.5 rounded-lg transition-colors"
-              style={{
-                backgroundColor: 'rgb(var(--surface-200))',
-                color: 'rgb(var(--ink-muted))',
-              }}
-            >
-              Copy
-            </button>
-          </div>
-          <pre
-            className="text-sm whitespace-pre-wrap font-mono leading-relaxed max-h-96 overflow-y-auto p-4 rounded-xl"
+      {
+        state.files.length > 0 && (
+          <div
+            className="p-6 rounded-2xl space-y-5"
             style={{
-              backgroundColor: 'rgb(var(--surface-50))',
-              color: 'rgb(var(--ink))',
+              backgroundColor: 'rgb(var(--surface-100))',
               border: '1px solid rgb(var(--surface-300))',
             }}
           >
-            {state.extractedText}
-          </pre>
-        </div>
-      )}
+            {/* Mode toggle */}
+            <div>
+              <label
+                className="text-xs font-medium uppercase tracking-wider mb-3 block"
+                style={{ color: 'rgb(var(--ink-muted))' }}
+              >
+                Mode
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { value: 'image' as OcrMode, label: 'Extract Text', desc: 'Get plain text from image', icon: Image },
+                  { value: 'pdf' as OcrMode, label: 'Searchable PDF', desc: 'Add text layer to scanned PDF', icon: FileText },
+                ].map((m) => (
+                  <button
+                    key={m.value}
+                    onClick={() => setState(prev => ({ ...prev, mode: m.value }))}
+                    className="p-4 rounded-xl text-left transition-all border flex items-start gap-3"
+                    style={{
+                      backgroundColor:
+                        state.mode === m.value ? 'rgb(var(--accent-50))' : 'rgb(var(--surface-200))',
+                      borderColor:
+                        state.mode === m.value ? 'rgb(var(--accent-400))' : 'rgb(var(--surface-300))',
+                    }}
+                  >
+                    <m.icon
+                      className="w-5 h-5 shrink-0 mt-0.5"
+                      style={{
+                        color: state.mode === m.value ? 'rgb(var(--accent-400))' : 'rgb(var(--ink-faint))',
+                      }}
+                    />
+                    <div>
+                      <p
+                        className="text-sm font-medium"
+                        style={{
+                          color: state.mode === m.value ? 'rgb(var(--accent-400))' : 'rgb(var(--ink))',
+                        }}
+                      >
+                        {m.label}
+                      </p>
+                      <p
+                        className="text-[11px] mt-0.5"
+                        style={{ color: 'rgb(var(--ink-faint))' }}
+                      >
+                        {m.desc}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-    </ToolPageWrapper>
+            {/* Language */}
+            <div>
+              <label
+                className="text-xs font-medium uppercase tracking-wider mb-2 block"
+                style={{ color: 'rgb(var(--ink-muted))' }}
+              >
+                Language
+              </label>
+              <select
+                value={state.lang}
+                onChange={(e) => setState(prev => ({ ...prev, lang: e.target.value }))}
+                className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
+                style={{
+                  backgroundColor: 'rgb(var(--surface-200))',
+                  border: '1px solid rgb(var(--surface-300))',
+                  color: 'rgb(var(--ink))',
+                }}
+              >
+                {LANGUAGES.map((l) => (
+                  <option key={l.value} value={l.value}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Button moved to action area */}
+          </div>
+        )
+      }
+
+      {/* Extracted text result */}
+      {
+        status === 'done' && state.mode === 'image' && state.extractedText && (
+          <div
+            className="p-6 rounded-2xl space-y-3"
+            style={{
+              backgroundColor: 'rgb(var(--surface-100))',
+              border: '1px solid rgb(var(--surface-300))',
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium uppercase tracking-wider" style={{ color: 'rgb(var(--ink-muted))' }}>
+                Extracted Text
+              </p>
+              <button
+                onClick={() => navigator.clipboard.writeText(state.extractedText)}
+                className="text-xs px-3 py-1.5 rounded-lg transition-colors"
+                style={{
+                  backgroundColor: 'rgb(var(--surface-200))',
+                  color: 'rgb(var(--ink-muted))',
+                }}
+              >
+                Copy
+              </button>
+            </div>
+            <pre
+              className="text-sm whitespace-pre-wrap font-mono leading-relaxed max-h-96 overflow-y-auto p-4 rounded-xl"
+              style={{
+                backgroundColor: 'rgb(var(--surface-50))',
+                color: 'rgb(var(--ink))',
+                border: '1px solid rgb(var(--surface-300))',
+              }}
+            >
+              {state.extractedText}
+            </pre>
+          </div>
+        )
+      }
+
+    </ToolPageWrapper >
   );
 }

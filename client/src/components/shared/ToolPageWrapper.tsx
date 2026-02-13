@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, RotateCcw, RotateCw, Trash2, type LucideIcon } from 'lucide-react';
 
@@ -25,6 +25,41 @@ export default function ToolPageWrapper({
   title, description, icon: Icon, children, preview, action,
   onUndo, onRedo, onClear, canUndo, canRedo
 }: ToolPageWrapperProps) {
+  // Handle Keyboard Shortcuts for Undo/Redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Undo: Ctrl+Z (Windows) or Cmd+Z (Mac)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+        if (canUndo && onUndo) {
+          e.preventDefault();
+          onUndo();
+        }
+        return;
+      }
+
+      // Redo: Ctrl+Shift+Z (Windows) or Cmd+Shift+Z (Mac)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && e.shiftKey) {
+        if (canRedo && onRedo) {
+          e.preventDefault();
+          onRedo();
+        }
+        return;
+      }
+
+      // Redo: Ctrl+Y (Windows alternative)
+      if (e.ctrlKey && e.key.toLowerCase() === 'y') {
+        if (canRedo && onRedo) {
+          e.preventDefault();
+          onRedo();
+        }
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onUndo, onRedo, canUndo, canRedo]);
+
   return (
     <div className="tool-layout">
       {/* ─── Left pane — upload + controls ─── */}

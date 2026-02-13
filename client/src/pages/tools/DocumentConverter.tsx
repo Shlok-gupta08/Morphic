@@ -18,11 +18,13 @@ export default function DocumentConverter() {
     targetFormat: string;
     results: PreviewResult[];
     activeResultId: string | null;
+    closedResults: PreviewResult[];
   }>('document-converter', {
     files: [],
     targetFormat: '',
     results: [],
-    activeResultId: null
+    activeResultId: null,
+    closedResults: []
   });
 
   const [status, setStatus] = useState<ProcessingStatus>('idle');
@@ -104,6 +106,26 @@ export default function DocumentConverter() {
 
   const groups = getAvailableTargets();
 
+  const handleCloseResult = (id: string) => {
+    const resultToClose = state.results.find(r => r.id === id);
+    if (!resultToClose) return;
+
+    setState(prev => ({
+      ...prev,
+      results: prev.results.filter(r => r.id !== id),
+      closedResults: [...(prev.closedResults || []), resultToClose],
+      activeResultId: prev.activeResultId === id ? null : prev.activeResultId
+    }));
+  };
+
+  const handleRestoreResults = () => {
+    setState(prev => ({
+      ...prev,
+      results: [...prev.results, ...(prev.closedResults || [])],
+      closedResults: []
+    }));
+  };
+
   if (isLoading) return null;
 
   return (
@@ -130,6 +152,9 @@ export default function DocumentConverter() {
             if (isOriginal) setState(prev => ({ ...prev, activeResultId: null }));
             else if (id) setState(prev => ({ ...prev, activeResultId: id }));
           }}
+          onClose={handleCloseResult}
+          onRestore={handleRestoreResults}
+          closedCount={(state.closedResults || []).length}
         />
       }
       action={

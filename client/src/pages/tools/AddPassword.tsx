@@ -13,6 +13,7 @@ interface AddPasswordState {
   confirmPassword: string;
   results: PreviewResult[];
   activeResultId: string | null;
+  closedResults: PreviewResult[];
 }
 
 export default function AddPassword() {
@@ -21,7 +22,8 @@ export default function AddPassword() {
     password: '',
     confirmPassword: '',
     results: [],
-    activeResultId: null
+    activeResultId: null,
+    closedResults: []
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -62,6 +64,26 @@ export default function AddPassword() {
     }
   };
 
+  const handleCloseResult = (id: string) => {
+    const resultToClose = state.results.find(r => r.id === id);
+    if (!resultToClose) return;
+
+    setState(prev => ({
+      ...prev,
+      results: prev.results.filter(r => r.id !== id),
+      closedResults: [...(prev.closedResults || []), resultToClose],
+      activeResultId: prev.activeResultId === id ? null : prev.activeResultId
+    }));
+  };
+
+  const handleRestoreResults = () => {
+    setState(prev => ({
+      ...prev,
+      results: [...prev.results, ...(prev.closedResults || [])],
+      closedResults: []
+    }));
+  };
+
   if (isLoading) return null;
 
   return (
@@ -88,6 +110,9 @@ export default function AddPassword() {
             if (isOriginal) setState(prev => ({ ...prev, activeResultId: null }));
             else if (id) setState(prev => ({ ...prev, activeResultId: id }));
           }}
+          onClose={handleCloseResult}
+          onRestore={handleRestoreResults}
+          closedCount={(state.closedResults || []).length}
         />
       }
       action={

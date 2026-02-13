@@ -13,10 +13,12 @@ export default function RotatePdf() {
     angle: number;
     results: PreviewResult[];
     activeResultId: string | null;
+    closedResults: PreviewResult[];
   }>('rotate-pdf', {
     files: [],
     angle: 90,
     results: [],
+    closedResults: [],
     activeResultId: null
   });
 
@@ -50,6 +52,26 @@ export default function RotatePdf() {
     }
   };
 
+  const handleCloseResult = (id: string) => {
+    const resultToClose = state.results.find(r => r.id === id);
+    if (!resultToClose) return;
+
+    setState(prev => ({
+      ...prev,
+      results: prev.results.filter(r => r.id !== id),
+      closedResults: [...(prev.closedResults || []), resultToClose],
+      activeResultId: prev.activeResultId === id ? null : prev.activeResultId
+    }));
+  };
+
+  const handleRestoreResults = () => {
+    setState(prev => ({
+      ...prev,
+      results: [...prev.results, ...(prev.closedResults || [])],
+      closedResults: []
+    }));
+  };
+
   if (isLoading) return null;
 
   return (
@@ -75,6 +97,9 @@ export default function RotatePdf() {
             if (isOriginal) setState(prev => ({ ...prev, activeResultId: null }));
             else if (id) setState(prev => ({ ...prev, activeResultId: id }));
           }}
+          onClose={handleCloseResult}
+          onRestore={handleRestoreResults}
+          closedCount={(state.closedResults || []).length}
         />
       }
       action={
