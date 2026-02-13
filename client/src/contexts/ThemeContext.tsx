@@ -91,7 +91,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     try {
       return (localStorage.getItem('fc-theme') as ThemeId) || 'light';
     } catch {
-      return 'dark'; // Default to our new dark mode
+      return 'light'; // Default to light mode
     }
   });
 
