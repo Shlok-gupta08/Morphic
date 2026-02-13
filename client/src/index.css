@@ -1,0 +1,560 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════════════
+   FILE CONVERTER — Premium Dark Aesthetic
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Theme transition - smooth color changes when switching themes */
+.theme-transitioning,
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+  transition: background-color 0.1s ease-out,
+    border-color 0.1s ease-out,
+    color 0.1s ease-out,
+    fill 0.1s ease-out !important;
+}
+
+:root {
+  /* Default Dark Palette (Blue/Urbanist) */
+  --surface-50: 5 5 8;
+  --surface-100: 12 14 18;
+  --surface-200: 22 26 34;
+  --surface-300: 38 46 58;
+  --surface-400: 54 64 80;
+  --surface-500: 80 94 114;
+
+  --ink: 240 245 250;
+  --ink-muted: 148 163 184;
+  --ink-faint: 90 105 125;
+
+  --accent-50: 6 24 36;
+  --accent-100: 8 40 60;
+  --accent-400: 14 115 170;
+  --accent-500: 18 145 205;
+
+  /* Semantic Colors (Default Dark) */
+  --color-success: 34 197 94;
+  /* Green-500 */
+  --color-purple: 168 85 247;
+  /* Purple-500 */
+
+  /* Fonts */
+  --font-display: 'Urbanist', system-ui, -apple-system, sans-serif;
+  --font-body: 'Manrope', system-ui, -apple-system, sans-serif;
+
+  /* Doodle Colors (Dark Mode - Light Bluish) */
+  --color-doodle: 200 220 255;
+}
+
+/* Light Mode Overrides */
+[data-theme='light'] {
+  --color-success: 85 107 47;
+  /* Dark Olive Green - Harmonizes with Beige */
+  --color-purple: 140 100 90;
+  /* Muted Rose/Brown - Harmonizes with Beige */
+
+  /* Doodle Colors (Light Mode - Darker Coffee for better visibility) */
+  --color-doodle: 130 90 70;
+}
+
+.doodle-color {
+  color: rgb(var(--color-doodle));
+}
+
+/* ── Reset & Base ──────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: rgb(var(--surface-50));
+  color: rgb(var(--ink));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+::selection {
+  background-color: rgb(var(--accent-400) / 0.3);
+  color: rgb(var(--ink));
+}
+
+/* ── Typography ────────────────────────────────────────────── */
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--surface-300));
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--surface-400));
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOOL-PAGE — widescreen split layout (left upload / right preview)
+   ═══════════════════════════════════════════════════════════════ */
+
+.tool-layout {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  min-height: calc(100vh - 80px);
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.tool-left {
+  width: 480px;
+  /* Wider left panel as requested */
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.tool-right {
+  flex: 1;
+  min-width: 0;
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: calc(100vh - 2rem);
+}
+
+.tool-action {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tool-preview {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background-color: rgb(var(--surface-100));
+  border: 1px solid rgb(var(--surface-200));
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+/* Responsive: stack on narrow screens */
+@media (max-width: 1100px) {
+  .tool-layout {
+    flex-direction: column;
+  }
+
+  .tool-left {
+    width: 100%;
+  }
+
+  .tool-right {
+    position: static;
+    height: auto;
+    min-height: 500px;
+  }
+}
+
+/* Mobile specific overrides for tool layout */
+@media (max-width: 768px) {
+  .tool-layout {
+    flex-direction: column;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    gap: 1.5rem;
+  }
+
+  .tool-left {
+    width: 100%;
+    order: 1;
+    /* Ensure Upload is first */
+  }
+
+  .tool-right {
+    width: 100%;
+    min-height: 400px;
+    order: 2;
+    /* Ensure Preview is second */
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HERO / COMPACT SECTION
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Used for the initial parallax hero */
+.parallax-hero {
+  position: relative;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-color: rgb(var(--surface-50));
+  z-index: 50;
+}
+
+.hero-content {
+  text-align: center;
+  z-index: 10;
+  padding: 2rem;
+}
+
+.hero-title {
+  font-size: 4rem;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  color: rgb(var(--ink));
+  margin-bottom: 1rem;
+  line-height: 1;
+}
+
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 2.75rem;
+  }
+}
+
+.hero-subtitle {
+  font-size: 1.25rem;
+  color: rgb(var(--ink-muted));
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .hero-subtitle {
+    font-size: 1rem;
+    padding: 0 1rem;
+  }
+}
+
+
+
+/* ═══════════════════════════════════════════════════════════════
+   TOOLS GRID — Overlay Effect
+   ═══════════════════════════════════════════════════════════════ */
+
+.modules-overlay {
+  position: relative;
+  z-index: 40;
+  background-color: rgb(var(--surface-50));
+  min-height: 100vh;
+  padding: 4rem 2rem;
+  box-shadow: 0 -20px 60px -20px rgba(0, 0, 0, 0.2);
+  /* Shadow to separate from hero */
+}
+
+/* Filter pills bar */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 3rem;
+  flex-wrap: wrap;
+}
+
+.filter-pill {
+  padding: 0.5rem 1.25rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border: 1px solid rgb(var(--surface-200));
+  background-color: rgb(var(--surface-100));
+  color: rgb(var(--ink-muted));
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: var(--font-body);
+}
+
+.filter-pill:hover {
+  border-color: rgb(var(--accent-400));
+  color: rgb(var(--accent-400));
+  transform: translateY(-1px);
+}
+
+.filter-active {
+  background-color: rgb(var(--accent-400));
+  border-color: rgb(var(--accent-400));
+  color: rgb(var(--surface-50));
+  /* Dark text on gold */
+  font-weight: 600;
+}
+
+.filter-active:hover {
+  background-color: rgb(var(--accent-500));
+  color: rgb(var(--surface-50));
+}
+
+/* Tools grid */
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  /* Slightly wider cards */
+  gap: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOOL CARD — Premium & Minimalist
+   ═══════════════════════════════════════════════════════════════ */
+
+.tool-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  background-color: rgb(var(--surface-100));
+  border: 1px solid rgb(var(--surface-200));
+  text-decoration: none;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  overflow: hidden;
+}
+
+.tool-card:hover {
+  transform: translateY(-5px);
+  border-color: rgb(var(--accent-400));
+  background-color: rgb(var(--surface-100));
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+}
+
+.tool-card-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgb(var(--surface-200));
+  color: rgb(var(--ink-muted));
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+}
+
+.tool-card:hover .tool-card-icon {
+  background-color: rgb(var(--accent-400));
+  color: rgb(0 0 0);
+}
+
+.tool-card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: rgb(var(--ink));
+  margin-bottom: 0.5rem;
+}
+
+.tool-card-desc {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: rgb(var(--ink-muted));
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SHARED COMPONENTS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Button — Primary (Gold) */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background-color: rgb(var(--accent-400));
+  color: rgb(var(--surface-50));
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background-color: rgb(var(--accent-500));
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  background-color: rgb(var(--surface-300));
+  color: rgb(var(--ink-muted));
+}
+
+/* Button — Secondary */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background-color: transparent;
+  color: rgb(var(--ink));
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 0.875rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(var(--surface-300));
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  border-color: rgb(var(--ink));
+  background-color: rgb(var(--surface-200));
+}
+
+/* Input */
+.input-field {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: rgb(var(--surface-50));
+  /* Darker input bg */
+  border: 1px solid rgb(var(--surface-200));
+  border-radius: 0.75rem;
+  color: rgb(var(--ink));
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.input-field:focus {
+  border-color: rgb(var(--accent-400));
+}
+
+.input-field::placeholder {
+  color: rgb(var(--ink-faint));
+}
+
+/* Select Field */
+.select-field {
+  width: 100%;
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
+  background-color: rgb(var(--surface-50));
+  border: 1px solid rgb(var(--surface-200));
+  border-radius: 0.75rem;
+  color: rgb(var(--ink));
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  cursor: pointer;
+}
+
+.select-field:focus {
+  border-color: rgb(var(--accent-400));
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%230e73aa' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+}
+
+.select-field option {
+  background-color: rgb(var(--surface-100));
+  color: rgb(var(--ink));
+  padding: 8px;
+}
+
+/* Dropzone */
+.dropzone-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  border: 2px dashed rgb(var(--surface-200));
+  border-radius: 1rem;
+  background-color: rgb(var(--surface-50));
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dropzone-area:hover,
+.dropzone-active {
+  border-color: rgb(var(--accent-400));
+  background-color: rgb(var(--surface-100));
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+
+.animate-fadeIn {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Utilities */
+.no-spinner::-webkit-inner-spin-button,
+.no-spinner::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-spinner[type=number] {
+  -moz-appearance: textfield;
+}

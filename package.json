@@ -1,0 +1,27 @@
+{
+  "name": "morphic",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Morphic - A powerful local file converter for PDFs, images, and documents. Privacy-first, no cloud uploads, no limits.",
+  "author": "Shlok Gupta",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shlokgupta/morphic"
+  },
+  "keywords": ["pdf", "converter", "image", "ocr", "merge", "split", "compress", "local", "privacy"],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "start": "cd server && npm start",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "setup": "powershell -ExecutionPolicy Bypass -File install_deps.ps1",
+    "build:server": "cd server && npm run build",
+    "build:all": "npm run build:server && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
