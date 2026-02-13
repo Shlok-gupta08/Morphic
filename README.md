@@ -73,36 +73,37 @@ powershell -ExecutionPolicy Bypass -File scripts/Create-Shortcut.ps1
 
 ## Features
 
+### Convert
+| Tool | Description |
+|------|-------------|
+| **Document Converter** | Convert between PDF, DOCX, TXT, HTML, ODT, RTF, and more |
+| **Image Converter** | Convert between PNG, JPG, WebP, AVIF, TIFF, GIF, BMP, SVG |
+
+### PDF Organize
+| Tool | Description |
+|------|-------------|
+| **Merge PDFs** | Combine multiple PDF files into one document |
+| **Split PDF** | Extract pages or split into multiple files |
+| **Rotate Pages** | Rotate PDF pages by 90°, 180°, or 270° |
+| **Extract Pages** | Pull specific pages out of a PDF |
+| **Remove Pages** | Delete specific pages or page ranges |
+| **Page Numbers** | Add page numbers to your PDF |
+
+### PDF Security
+| Tool | Description |
+|------|-------------|
+| **Add Password** | Protect your PDF with password encryption |
+| **Remove Password** | Unlock a password-protected PDF |
+| **Add Watermark** | Stamp text across every page |
+
 ### PDF Tools
 | Tool | Description |
 |------|-------------|
-| **Merge PDFs** | Combine multiple PDFs into one |
-| **Split PDF** | Extract specific pages or split by ranges |
-| **Compress PDF** | Reduce file size with quality presets |
-| **Rotate Pages** | Rotate individual or all pages |
-| **Remove Pages** | Delete unwanted pages |
-| **Extract Pages** | Pull out specific pages |
-| **Add Password** | Encrypt PDFs with password protection |
-| **Remove Password** | Decrypt protected PDFs |
+| **Compress Files** | Reduce PDF and image file sizes with quality presets |
+| **Repair PDF** | Fix corrupted or broken PDF files |
 | **Flatten PDF** | Flatten form fields and annotations |
-| **Repair PDF** | Fix corrupted PDF files |
-| **Page Numbers** | Add page numbers to documents |
-| **Edit Metadata** | Modify title, author, and properties |
-| **Watermark** | Add text watermarks |
-
-### Image Tools
-| Tool | Description |
-|------|-------------|
-| **Image Converter** | Convert between PNG, JPG, WebP, AVIF, TIFF, GIF, BMP |
-| **Compress Images** | Reduce image file size with quality control |
-| **Batch Processing** | Convert multiple images at once |
-
-### Document Tools
-| Tool | Description |
-|------|-------------|
-| **Document Converter** | Convert between PDF, DOCX, TXT, HTML, and more |
 | **OCR** | Extract text from images and scanned PDFs |
-| **File Info** | View detailed metadata for any file |
+| **File Info** | View detailed metadata for PDFs, images, and videos |
 
 ### Why Morphic?
 
