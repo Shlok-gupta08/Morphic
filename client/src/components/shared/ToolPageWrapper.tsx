@@ -48,7 +48,7 @@ export default function ToolPageWrapper({
             >
               <Icon className="w-4.5 h-4.5" style={{ color: 'rgb(var(--accent-400))' }} />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 pr-4">
               <h1
                 className="text-xl font-display font-bold tracking-tight"
                 style={{ color: 'rgb(var(--ink))' }}

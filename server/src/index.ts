@@ -34,8 +34,7 @@ const upload = multer({
 
 app.use('/api/merge', upload.array('files', 100), mergeRoutes);
 app.use('/api/split', upload.single('file'), splitRoutes);
-app.use('/api/convert', upload.single('file'), convertRoutes);
-app.use('/api/convert/batch', upload.array('files', 100));
+app.use('/api/convert', upload.fields([{ name: 'file', maxCount: 1 }, { name: 'files', maxCount: 100 }]), convertRoutes);
 app.use('/api/pdf', upload.single('file'), pdfRoutes);
 app.use('/api/ocr', upload.single('file'), ocrRoutes);
 

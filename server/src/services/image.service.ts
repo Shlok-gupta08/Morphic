@@ -5,9 +5,11 @@ import { exec } from '../utils/exec.js';
 import { config } from '../config/index.js';
 import { createTempDir, cleanupTempDir, writeTempFile, readTempFile } from '../utils/tempfile.js';
 
-export type ImageFormat = 'png' | 'jpg' | 'jpeg' | 'webp' | 'tiff' | 'avif' | 'gif' | 'bmp' | 'ico' | 'svg';
+export type ImageFormat = 'png' | 'jpg' | 'jpeg' | 'webp' | 'tiff' | 'avif' | 'gif' | 'bmp' | 'ico' | 'svg' | 'heic' | 'heif';
 
 const SHARP_FORMATS = ['png', 'jpg', 'jpeg', 'webp', 'tiff', 'avif', 'gif'] as const;
+// Sharp can read HEIC/HEIF but not write to them, so we only use these as input formats
+const SHARP_INPUT_ONLY = ['heic', 'heif'] as const;
 
 // ─── Image Conversion ────────────────────────────────────
 
@@ -19,6 +21,11 @@ export async function convertImage(buffer: Buffer, targetFormat: ImageFormat, op
 } = {}): Promise<Buffer> {
   const { width, height, quality = 90, fit = 'inside' } = opts;
 
+  // HEIC/HEIF output is not supported
+  if (targetFormat === 'heic' || targetFormat === 'heif') {
+    throw new Error('HEIC/HEIF output is not supported. Please choose a different format like PNG, JPG, or WebP.');
+  }
+
   // Handle SVG output via ImageMagick
   if (targetFormat === 'svg') {
     return convertWithImageMagick(buffer, 'svg');
@@ -29,13 +36,15 @@ export async function convertImage(buffer: Buffer, targetFormat: ImageFormat, op
     return convertWithImageMagick(buffer, targetFormat);
   }
 
-  let pipeline = sharp(buffer);
+  // Try sharp first - it can handle HEIC input if libvips has heif support
+  try {
+    let pipeline = sharp(buffer);
 
-  if (width || height) {
-    pipeline = pipeline.resize(width, height, { fit, withoutEnlargement: true });
-  }
+    if (width || height) {
+      pipeline = pipeline.resize(width, height, { fit, withoutEnlargement: true });
+    }
 
-  const format = targetFormat === 'jpg' ? 'jpeg' : targetFormat;
+    const format = targetFormat === 'jpg' ? 'jpeg' : targetFormat;
 
   switch (format) {
     case 'png':
@@ -58,14 +67,21 @@ export async function convertImage(buffer: Buffer, targetFormat: ImageFormat, op
       break;
   }
 
-  const result = await pipeline.toBuffer();
-  
-  // Validate output
-  if (result.length < 10) {
-    throw new Error(`Image conversion produced invalid output (${result.length} bytes)`);
-  }
+    const result = await pipeline.toBuffer();
+    
+    // Validate output
+    if (result.length < 10) {
+      throw new Error(`Image conversion produced invalid output (${result.length} bytes)`);
+    }
 
-  return result;
+    return result;
+  } catch (sharpError: any) {
+    // If sharp fails (e.g., HEIC without libvips heif support), try ImageMagick
+    if (sharpError.message?.includes('heif') || sharpError.message?.includes('unsupported') || sharpError.message?.includes('Input file')) {
+      return convertWithImageMagick(buffer, targetFormat);
+    }
+    throw sharpError;
+  }
 }
 
 // ─── Image Info ──────────────────────────────────────────

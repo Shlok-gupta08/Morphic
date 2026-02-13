@@ -154,11 +154,11 @@ export default function CompressPdf() {
                   onClick={() => setState(prev => ({ ...prev, quality: q.value }))}
                   className={`p-4 rounded-xl text-left transition-all border
                     ${state.quality === q.value
-                      ? 'bg-accent-600 text-white border-accent-600'
+                      ? 'bg-accent-400 text-surface-50 border-accent-400'
                       : 'bg-surface-200 text-ink border-surface-300 hover:border-surface-400'}`}
                 >
-                  <p className={`text-sm font-medium ${state.quality === q.value ? 'text-white' : 'text-ink'}`}>{q.label}</p>
-                  <p className={`text-[11px] mt-0.5 ${state.quality === q.value ? 'text-accent-200' : 'text-ink-faint'}`}>{q.description}</p>
+                  <p className={`text-sm font-medium ${state.quality === q.value ? 'text-surface-50' : 'text-ink'}`}>{q.label}</p>
+                  <p className={`text-[11px] mt-0.5 ${state.quality === q.value ? 'text-surface-200' : 'text-ink-faint'}`}>{q.description}</p>
                 </button>
               ))}
             </div>

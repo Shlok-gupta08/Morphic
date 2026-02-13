@@ -21,17 +21,34 @@ async function postBlob(
   form: FormData,
   onProgress?: ProgressCallback
 ): Promise<Blob> {
-  const res = await api.post(url, form, {
-    responseType: 'blob',
-    onUploadProgress: (e) => {
-      if (e.total && onProgress) onProgress(Math.round((e.loaded / e.total) * 50));
-    },
-    onDownloadProgress: (e) => {
-      if (e.total && onProgress) onProgress(50 + Math.round((e.loaded / e.total) * 50));
-    },
-  });
-  if (onProgress) onProgress(100);
-  return res.data;
+  try {
+    const res = await api.post(url, form, {
+      responseType: 'blob',
+      onUploadProgress: (e) => {
+        if (e.total && onProgress) onProgress(Math.round((e.loaded / e.total) * 50));
+      },
+      onDownloadProgress: (e) => {
+        if (e.total && onProgress) onProgress(50 + Math.round((e.loaded / e.total) * 50));
+      },
+    });
+    if (onProgress) onProgress(100);
+    return res.data;
+  } catch (err: any) {
+    // When responseType is 'blob', error responses also come as blobs
+    // We need to parse them to get the actual error message
+    if (err.response?.data instanceof Blob) {
+      try {
+        const text = await err.response.data.text();
+        const json = JSON.parse(text);
+        if (json.error) {
+          err.message = json.error;
+        }
+      } catch {
+        // If parsing fails, keep the original error
+      }
+    }
+    throw err;
+  }
 }
 
 // ─── Convert ─────────────────────────────────────────────
@@ -57,6 +74,23 @@ export async function batchConvert(files: File[], targetFormat: string): Promise
 export async function getSupportedFormats() {
   const res = await api.get('/convert/formats');
   return res.data;
+}
+
+// ─── Image Compression ───────────────────────────────────
+
+export async function compressImage(
+  file: File,
+  opts: { quality?: number; maxWidth?: number; maxHeight?: number; format?: string; aggressive?: boolean } = {},
+  onProgress?: ProgressCallback
+): Promise<Blob> {
+  const form = makeFormData(file, {
+    quality: String(opts.quality ?? 80),
+    ...(opts.maxWidth ? { maxWidth: String(opts.maxWidth) } : {}),
+    ...(opts.maxHeight ? { maxHeight: String(opts.maxHeight) } : {}),
+    ...(opts.format ? { format: opts.format } : {}),
+    ...(opts.aggressive ? { aggressive: 'true' } : {}),
+  });
+  return postBlob('/convert/compress-image', form, onProgress);
 }
 
 // ─── Merge ───────────────────────────────────────────────

@@ -11,7 +11,7 @@ import RotatePdf from '@/pages/tools/RotatePdf';
 import ExtractPages from '@/pages/tools/ExtractPages';
 import RemovePages from '@/pages/tools/RemovePages';
 import PageNumbers from '@/pages/tools/PageNumbers';
-import CompressPdf from '@/pages/tools/CompressPdf';
+import CompressFile from '@/pages/tools/CompressFile';
 import AddPassword from '@/pages/tools/AddPassword';
 import RemovePassword from '@/pages/tools/RemovePassword';
 import Watermark from '@/pages/tools/Watermark';
@@ -44,7 +44,7 @@ export default function App() {
         <Route path="/tools/watermark" element={<Watermark />} />
 
         {/* Tools */}
-        <Route path="/tools/compress" element={<CompressPdf />} />
+        <Route path="/tools/compress" element={<CompressFile />} />
         <Route path="/tools/repair" element={<RepairPdf />} />
         <Route path="/tools/flatten" element={<FlattenPdf />} />
         <Route path="/tools/ocr" element={<OcrTool />} />

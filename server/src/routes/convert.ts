@@ -11,7 +11,10 @@ const router = Router();
 
 router.post('/', async (req: Request, res: Response): Promise<void> => {
   try {
-    const file = req.file;
+    // Handle both upload.single and upload.fields
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+    const file = files?.file?.[0] || (req as any).file;
+    
     if (!file) {
       res.status(400).json({ error: 'File required' });
       return;
@@ -152,9 +155,70 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
   }
 });
 
+// ─── Image Compression Endpoint ──────────────────────────
+
+router.post('/compress-image', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+    const file = files?.file?.[0] || (req as any).file;
+    
+    if (!file) {
+      res.status(400).json({ error: 'Image file required' });
+      return;
+    }
+
+    const inputExt = path.extname(file.originalname).slice(1).toLowerCase();
+    const baseName = path.basename(file.originalname, path.extname(file.originalname));
+    
+    // Get compression options
+    const quality = parseInt(req.body.quality) || 80;
+    const maxWidth = req.body.maxWidth ? parseInt(req.body.maxWidth) : undefined;
+    const maxHeight = req.body.maxHeight ? parseInt(req.body.maxHeight) : undefined;
+    
+    // Determine output format (keep same or convert to more efficient format)
+    let outputFormat = inputExt;
+    if (req.body.format) {
+      outputFormat = req.body.format.toLowerCase();
+    }
+    
+    // Use webp for maximum compression if no format specified and original isn't already webp
+    if (req.body.aggressive === 'true' && outputFormat !== 'webp') {
+      outputFormat = 'webp';
+    }
+
+    const result = await convertImage(file.buffer, outputFormat as any, {
+      quality,
+      width: maxWidth,
+      height: maxHeight,
+      fit: 'inside',
+    });
+
+    const outputName = `${baseName}-compressed.${outputFormat}`;
+
+    const mimeMap: Record<string, string> = {
+      png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+      webp: 'image/webp', tiff: 'image/tiff', avif: 'image/avif',
+      gif: 'image/gif', bmp: 'image/bmp',
+    };
+
+    res.set({
+      'Content-Type': mimeMap[outputFormat] || 'application/octet-stream',
+      'Content-Disposition': `attachment; filename="${outputName}"`,
+      'X-Original-Size': String(file.size),
+      'X-Compressed-Size': String(result.length),
+    });
+    res.send(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post('/batch', async (req: Request, res: Response): Promise<void> => {
   try {
-    const files = req.files as Express.Multer.File[];
+    // Handle both upload.array and upload.fields
+    const filesObj = req.files as { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[] | undefined;
+    const files = Array.isArray(filesObj) ? filesObj : filesObj?.files;
+    
     if (!files || files.length === 0) {
       res.status(400).json({ error: 'Files required' });
       return;
@@ -195,7 +259,7 @@ router.get('/formats', (_req: Request, res: Response) => {
 // ─── Helpers ─────────────────────────────────────────────
 
 function isImageFormat(ext: string): boolean {
-  return ['png', 'jpg', 'jpeg', 'webp', 'tiff', 'avif', 'gif', 'bmp', 'svg', 'ico'].includes(ext);
+  return ['png', 'jpg', 'jpeg', 'webp', 'tiff', 'avif', 'gif', 'bmp', 'svg', 'ico', 'heic', 'heif'].includes(ext);
 }
 
 function getSupportedConversions() {
@@ -205,7 +269,7 @@ function getSupportedConversions() {
       fromPdf: ['docx', 'xlsx', 'pptx', 'odt', 'txt', 'html', 'csv', 'rtf'],
     },
     images: {
-      formats: ['png', 'jpg', 'jpeg', 'webp', 'tiff', 'avif', 'gif', 'bmp', 'svg', 'ico'],
+      formats: ['png', 'jpg', 'jpeg', 'webp', 'tiff', 'avif', 'gif', 'bmp', 'svg', 'ico', 'heic', 'heif'],
       toPdf: true,
       fromPdf: true,
     },

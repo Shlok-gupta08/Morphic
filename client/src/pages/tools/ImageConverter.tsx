@@ -146,9 +146,9 @@ export default function ImageConverter() {
     >
       <FileDropzone
         onFilesSelected={(files) => setState(prev => ({ ...prev, files }))}
-        accept={{ 'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.tiff', '.avif', '.gif', '.bmp', '.svg'] }}
+        accept={{ 'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.tiff', '.avif', '.gif', '.bmp', '.svg', '.heic', '.heif'] }}
         label="Drop your image here"
-        hint="PNG, JPG, WebP, TIFF, AVIF, GIF, BMP, SVG"
+        hint="PNG, JPG, WebP, TIFF, AVIF, GIF, BMP, SVG, HEIC"
       />
 
       {state.files.length > 0 && (

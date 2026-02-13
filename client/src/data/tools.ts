@@ -45,7 +45,7 @@ export const TOOLS: Tool[] = [
   { id: 'watermark', name: 'Add Watermark', description: 'Stamp text across every page', icon: Droplets, category: 'pdf-security', path: '/tools/watermark' },
 
   // ── Tools ───────────────────────────
-  { id: 'compress', name: 'Compress PDF', description: 'Reduce file size while keeping quality', icon: Minimize2, category: 'pdf-tools', path: '/tools/compress' },
+  { id: 'compress', name: 'Compress Files', description: 'Reduce PDF and image file sizes', icon: Minimize2, category: 'pdf-tools', path: '/tools/compress' },
   { id: 'repair', name: 'Repair PDF', description: 'Fix corrupted or broken PDF files', icon: Wrench, category: 'pdf-tools', path: '/tools/repair' },
   { id: 'flatten', name: 'Flatten PDF', description: 'Flatten form fields and annotations', icon: Layers, category: 'pdf-tools', path: '/tools/flatten' },
   { id: 'ocr', name: 'OCR', description: 'Extract text from images and scanned PDFs', icon: ScanLine, category: 'pdf-tools', path: '/tools/ocr' },
