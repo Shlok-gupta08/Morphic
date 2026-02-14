@@ -60,8 +60,8 @@ app.get('/api/deps', (_req, res) => {
 const clientDist = path.resolve(__dirname, '../../client/dist');
 if (fs.existsSync(clientDist)) {
   app.use(express.static(clientDist));
-  // Catch-all route for SPA client-side routing
-  app.get('*', (_req, res) => {
+  // Catch-all route for SPA client-side routing (Express 5 syntax)
+  app.get('/*path', (_req, res) => {
     res.sendFile(path.join(clientDist, 'index.html'));
   });
   logger.info('Serving frontend from client/dist');

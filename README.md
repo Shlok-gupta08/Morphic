@@ -204,6 +204,57 @@ chmod +x scripts/INSTALL-MAC.sh  # or INSTALL-LINUX.sh
 
 ---
 
+## Docker Deployment
+
+Morphic can be deployed as a Docker container for cloud hosting (e.g., Azure Container Apps, AWS ECS, etc.).
+
+### Build the Docker Image
+
+```bash
+docker build -t morphic .
+```
+
+### Run Locally with Docker
+
+```bash
+docker run -p 3000:3000 morphic
+```
+
+Open your browser to **http://localhost:3000**
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | Server port | `3000` |
+| `HOST` | Bind address | `0.0.0.0` |
+| `NODE_ENV` | Environment | `production` |
+
+### Health Check
+
+The container includes a health check endpoint at `/api/health` that returns:
+- Server status and uptime
+- Memory usage
+- Environment info
+
+### Azure Container Apps Deployment
+
+1. Push your image to Azure Container Registry (ACR):
+   ```bash
+   az acr login --name <your-acr>
+   docker tag morphic <your-acr>.azurecr.io/morphic:latest
+   docker push <your-acr>.azurecr.io/morphic:latest
+   ```
+
+2. Create a Container App from the Azure Portal or CLI
+
+3. Configure the container with:
+   - **Port**: 3000
+   - **Memory**: Minimum 2GB recommended (LibreOffice requires memory)
+   - **CPU**: 1+ vCPU
+
+---
+
 ## License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
