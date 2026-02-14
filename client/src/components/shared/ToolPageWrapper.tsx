@@ -75,17 +75,17 @@ export default function ToolPageWrapper({
         </Link>
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-start gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-start gap-3 min-w-0">
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
               style={{ backgroundColor: 'rgb(var(--surface-200))' }}
             >
               <Icon className="w-4.5 h-4.5" style={{ color: 'rgb(var(--accent-400))' }} />
             </div>
-            <div className="min-w-0 pr-4">
+            <div className="min-w-0">
               <h1
-                className="text-xl font-display font-bold tracking-tight"
+                className="text-lg sm:text-xl font-display font-bold tracking-tight"
                 style={{ color: 'rgb(var(--ink))' }}
               >
                 {title}
@@ -98,7 +98,7 @@ export default function ToolPageWrapper({
 
           {/* Module Persistence Controls */}
           {(onUndo || onRedo || onClear) && (
-            <div className="flex items-center gap-1 bg-surface-200/50 p-1 rounded-lg">
+            <div className="flex items-center gap-1 bg-surface-200/50 p-1 rounded-lg self-start sm:self-auto shrink-0">
               <button
                 onClick={onUndo}
                 disabled={!canUndo}

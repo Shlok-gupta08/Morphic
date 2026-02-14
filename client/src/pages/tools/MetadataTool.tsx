@@ -207,7 +207,7 @@ export default function MetadataTool() {
         <div className="space-y-6">
           <div>
             <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wider mb-3">Document Properties</h4>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
                 ['Title', meta.title],
                 ['Author', meta.author],

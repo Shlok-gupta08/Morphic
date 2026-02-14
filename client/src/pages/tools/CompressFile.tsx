@@ -312,7 +312,7 @@ export default function CompressFile() {
                 <label className="text-xs font-medium text-ink-muted uppercase tracking-wider mb-3 block">
                   Compression level
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {PDF_QUALITIES.map(q => (
                     <button
                       key={q.value}
@@ -337,7 +337,7 @@ export default function CompressFile() {
                   <label className="text-xs font-medium text-ink-muted uppercase tracking-wider mb-3 block">
                     Quality level
                   </label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {IMAGE_QUALITIES.map(q => (
                       <button
                         key={q.value}
@@ -358,7 +358,7 @@ export default function CompressFile() {
                   <label className="text-xs font-medium text-ink-muted uppercase tracking-wider mb-3 block">
                     Output format
                   </label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {IMAGE_FORMATS.map(f => (
                       <button
                         key={f.value}

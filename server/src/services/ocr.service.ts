@@ -6,13 +6,64 @@ import { config } from '../config/index.js';
 import { createTempDir, cleanupTempDir, writeTempFile, readTempFile } from '../utils/tempfile.js';
 import { PDFDocument } from 'pdf-lib';
 
-// ─── OCR Image → Text (Tesseract.js, no binary needed) ──
+// ─── OCR Image → Text ────────────────────────────────────
+// Uses native Tesseract binary (faster, more reliable) with Tesseract.js fallback
 
 export async function ocrImage(imageBuffer: Buffer, lang = 'eng'): Promise<string> {
-  const { data: { text } } = await Tesseract.recognize(imageBuffer, lang, {
-    logger: () => {},
-  });
-  return text;
+  const tmpDir = createTempDir();
+  try {
+    // Determine file extension from buffer magic bytes
+    const ext = getImageExtension(imageBuffer);
+    
+    // Reject PDF files - they should use the PDF OCR endpoint
+    if (ext === 'pdf') {
+      throw new Error('PDF files should use the "Create Searchable PDF" mode, not "Extract Text"');
+    }
+    
+    const inputPath = writeTempFile(tmpDir, `input.${ext}`, imageBuffer);
+    const outputBase = path.join(tmpDir, 'output');
+
+    // Try native Tesseract first (if available)
+    if (config.bins.tesseract) {
+      try {
+        const result = await exec(config.bins.tesseract, [
+          inputPath,
+          outputBase,
+          '-l', lang,
+        ], { timeoutMs: 60 * 1000 });
+
+        if (result.code === 0 && fs.existsSync(`${outputBase}.txt`)) {
+          return fs.readFileSync(`${outputBase}.txt`, 'utf-8').trim();
+        }
+      } catch {
+        // Native Tesseract failed, try Tesseract.js
+      }
+    }
+
+    // Fallback to Tesseract.js (wrapped in try-catch to prevent crashes)
+    try {
+      const { data: { text } } = await Tesseract.recognize(imageBuffer, lang, {
+        logger: () => {},
+      });
+      return text;
+    } catch (jsErr: any) {
+      throw new Error(`OCR failed: ${jsErr.message || 'Could not read image'}`);
+    }
+  } finally {
+    cleanupTempDir(tmpDir);
+  }
+}
+
+function getImageExtension(buffer: Buffer): string {
+  // Check magic bytes
+  if (buffer[0] === 0xFF && buffer[1] === 0xD8) return 'jpg';
+  if (buffer[0] === 0x89 && buffer[1] === 0x50) return 'png';
+  if (buffer[0] === 0x47 && buffer[1] === 0x49) return 'gif';
+  if (buffer[0] === 0x52 && buffer[1] === 0x49) return 'webp';
+  if (buffer[0] === 0x42 && buffer[1] === 0x4D) return 'bmp';
+  // Check for PDF magic bytes (%PDF)
+  if (buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46) return 'pdf';
+  return 'png'; // Default
 }
 
 // ─── OCR PDF → Searchable PDF ────────────────────────────
@@ -24,16 +75,20 @@ export async function ocrPdf(pdfBuffer: Buffer, lang = 'eng'): Promise<Buffer> {
     const output = path.join(tmpDir, 'output.pdf');
 
     // First try ocrmypdf if available
-    const ocrmypdfResult = await exec('ocrmypdf', [
-      '-l', lang,
-      '--output-type', 'pdf',
-      '--skip-text',
-      input,
-      output,
-    ], { timeoutMs: 5 * 60 * 1000 });
+    try {
+      const ocrmypdfResult = await exec('ocrmypdf', [
+        '-l', lang,
+        '--output-type', 'pdf',
+        '--skip-text',
+        input,
+        output,
+      ], { timeoutMs: 5 * 60 * 1000 });
 
-    if (ocrmypdfResult.code === 0 && fs.existsSync(output)) {
-      return readTempFile(output);
+      if (ocrmypdfResult.code === 0 && fs.existsSync(output)) {
+        return readTempFile(output);
+      }
+    } catch {
+      // ocrmypdf not available, continue to fallback
     }
 
     // ── Fallback: Ghostscript → images → Tesseract.js → rebuild PDF ──
@@ -67,16 +122,45 @@ export async function ocrPdf(pdfBuffer: Buffer, lang = 'eng'): Promise<Buffer> {
       throw new Error('Ghostscript produced no page images from the PDF');
     }
 
-    // Step 3: OCR each page image with Tesseract.js
+    // Step 3: OCR each page image with native Tesseract (or Tesseract.js fallback)
     const ocrResults: Array<{ text: string; width: number; height: number }> = [];
     for (const pageFile of pageFiles) {
-      const imgBuffer = fs.readFileSync(path.join(imagesDir, pageFile));
-      const { data } = await Tesseract.recognize(imgBuffer, lang, {
-        logger: () => {},
-      });
-      // Get image dimensions from the recognition data
+      const imgPath = path.join(imagesDir, pageFile);
+      let text = '';
+      
+      // Try native Tesseract first
+      if (config.bins.tesseract) {
+        try {
+          const outputBase = path.join(imagesDir, `${pageFile}-out`);
+          const result = await exec(config.bins.tesseract, [
+            imgPath,
+            outputBase,
+            '-l', lang,
+          ], { timeoutMs: 60 * 1000 });
+          
+          if (result.code === 0 && fs.existsSync(`${outputBase}.txt`)) {
+            text = fs.readFileSync(`${outputBase}.txt`, 'utf-8').trim();
+          }
+        } catch {
+          // Native Tesseract failed, try Tesseract.js
+        }
+      }
+      
+      // Fallback to Tesseract.js if native failed
+      if (!text) {
+        try {
+          const imgBuffer = fs.readFileSync(imgPath);
+          const { data } = await Tesseract.recognize(imgBuffer, lang, {
+            logger: () => {},
+          });
+          text = data.text;
+        } catch {
+          // Both failed, use empty string
+        }
+      }
+      
       ocrResults.push({
-        text: data.text,
+        text,
         width: 612,   // Default US Letter width in points
         height: 792,  // Default US Letter height in points
       });
@@ -130,17 +214,59 @@ export async function ocrPdf(pdfBuffer: Buffer, lang = 'eng'): Promise<Buffer> {
 // ─── OCR Image → Full Result (with confidence, etc.) ────
 
 export async function ocrImageDetailed(imageBuffer: Buffer, lang = 'eng') {
-  const { data } = await Tesseract.recognize(imageBuffer, lang, {
-    logger: () => {},
-  });
+  const tmpDir = createTempDir();
+  try {
+    const ext = getImageExtension(imageBuffer);
+    
+    // Reject PDF files
+    if (ext === 'pdf') {
+      throw new Error('PDF files should use the "Create Searchable PDF" mode, not "Extract Text"');
+    }
+    
+    const inputPath = writeTempFile(tmpDir, `input.${ext}`, imageBuffer);
+    const outputBase = path.join(tmpDir, 'output');
 
-  return {
-    text: data.text,
-    confidence: data.confidence,
-    words: data.words?.map(w => ({
-      text: w.text,
-      confidence: w.confidence,
-      bbox: w.bbox,
-    })) || [],
-  };
+    // Try native Tesseract first
+    if (config.bins.tesseract) {
+      try {
+        const result = await exec(config.bins.tesseract, [
+          inputPath,
+          outputBase,
+          '-l', lang,
+        ], { timeoutMs: 60 * 1000 });
+
+        if (result.code === 0 && fs.existsSync(`${outputBase}.txt`)) {
+          const text = fs.readFileSync(`${outputBase}.txt`, 'utf-8').trim();
+          return {
+            text,
+            confidence: 0, // Native Tesseract doesn't provide confidence in basic mode
+            words: [],
+          };
+        }
+      } catch {
+        // Native Tesseract failed, try Tesseract.js
+      }
+    }
+
+    // Fallback to Tesseract.js (wrapped in try-catch to prevent crashes)
+    try {
+      const { data } = await Tesseract.recognize(imageBuffer, lang, {
+        logger: () => {},
+      });
+
+      return {
+        text: data.text,
+        confidence: data.confidence,
+        words: data.words?.map(w => ({
+          text: w.text,
+          confidence: w.confidence,
+          bbox: w.bbox,
+        })) || [],
+      };
+    } catch (jsErr: any) {
+      throw new Error(`OCR failed: ${jsErr.message || 'Could not read image'}`);
+    }
+  } finally {
+    cleanupTempDir(tmpDir);
+  }
 }

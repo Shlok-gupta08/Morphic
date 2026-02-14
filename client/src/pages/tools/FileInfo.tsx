@@ -123,7 +123,7 @@ export default function FileInfo() {
     useEffect(() => {
         if (!state.selectedId) return;
         const item = state.items.find(i => i.id === state.selectedId);
-        if (!item || item.meta || item.loading) return;
+        if (!item || item.meta || item.loading || item.error) return;
 
         // Mark as loading - we do this via setState but we need to be careful not to trigger infinite loops.
         // The check `!item.meta && !item.loading` prevents re-entry.
@@ -255,7 +255,7 @@ export default function FileInfo() {
                 <div className="space-y-6">
                     <div>
                         <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wider mb-3">Basic Properties</h4>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <p className="text-[11px] uppercase tracking-wider text-ink-faint font-medium">Last Modified</p>
                                 <p className="text-sm text-ink">{new Date(selectedItem.file.lastModified).toLocaleString()}</p>
@@ -278,7 +278,7 @@ export default function FileInfo() {
                     {meta.pdfMeta && (
                         <div>
                             <h4 className="text-xs font-semibold text-ink-muted uppercase tracking-wider mb-3 mt-6">PDF Metadata</h4>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {[
                                     ['Title', meta.pdfMeta.title],
                                     ['Author', meta.pdfMeta.author],

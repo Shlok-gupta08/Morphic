@@ -174,7 +174,7 @@ export default function CompressPdf() {
         <div className="p-6 rounded-2xl bg-surface-100 border border-surface-300 space-y-5">
           <div>
             <label className="text-xs font-medium text-ink-muted uppercase tracking-wider mb-3 block">Compression level</label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {QUALITIES.map(q => (
                 <button
                   key={q.value}

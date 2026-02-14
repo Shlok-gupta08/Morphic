@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useModuleState } from '@/hooks/useModuleState';
-import { ScanText, FileText, Image, Save, Download } from 'lucide-react';
+import { ScanText, FileText, Image, Save, Download, Check, Copy } from 'lucide-react';
 import ToolPageWrapper from '@/components/shared/ToolPageWrapper';
 import FileDropzone from '@/components/shared/FileDropzone';
 import ProcessingResult, { type ProcessingStatus } from '@/components/shared/ProcessingResult';
@@ -51,8 +51,15 @@ export default function OcrTool() {
   const [status, setStatus] = useState<ProcessingStatus>('idle');
   const [error, setError] = useState('');
   const [progress, setProgress] = useState(0);
+  const [copied, setCopied] = useState(false);
 
   const activeResult = state.results.find(r => r.id === state.activeResultId);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(state.extractedText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const onFilesSelected = (selected: File[]) => {
     setState(prev => {
@@ -158,6 +165,51 @@ export default function OcrTool() {
             onRestore={handleRestoreResults}
             closedCount={(state.closedResults || []).length}
           />
+        ) : state.mode === 'image' && (status === 'done' || status === 'processing') ? (
+          <div className="h-full flex flex-col rounded-2xl overflow-hidden" style={{ backgroundColor: 'rgb(var(--surface-100))', border: '1px solid rgb(var(--surface-300))' }}>
+            <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'rgb(var(--surface-300))' }}>
+              <p className="text-xs font-medium uppercase tracking-wider" style={{ color: 'rgb(var(--ink-muted))' }}>
+                Extracted Text
+              </p>
+              {state.extractedText && (
+                <button
+                  onClick={handleCopy}
+                  className={`text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${copied ? 'bg-green-500/20 text-green-500' : 'hover:bg-surface-300'}`}
+                  style={!copied ? {
+                    backgroundColor: 'rgb(var(--surface-200))',
+                    color: 'rgb(var(--ink-muted))',
+                  } : undefined}
+                >
+                  {copied ? (
+                    <><Check className="w-3.5 h-3.5" /> Copied!</>
+                  ) : (
+                    <><Copy className="w-3.5 h-3.5" /> Copy</>
+                  )}
+                </button>
+              )}
+            </div>
+            <div className="flex-1 overflow-auto p-4">
+              {status === 'processing' ? (
+                <div className="h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-8 h-8 border-2 border-accent-400 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                    <p className="text-sm" style={{ color: 'rgb(var(--ink-muted))' }}>Extracting text...</p>
+                  </div>
+                </div>
+              ) : state.extractedText ? (
+                <pre
+                  className="text-sm whitespace-pre-wrap font-mono leading-relaxed"
+                  style={{ color: 'rgb(var(--ink))' }}
+                >
+                  {state.extractedText}
+                </pre>
+              ) : (
+                <div className="h-full flex items-center justify-center">
+                  <p className="text-sm" style={{ color: 'rgb(var(--ink-faint))' }}>No text extracted</p>
+                </div>
+              )}
+            </div>
+          </div>
         ) : undefined
       }
       action={
@@ -251,7 +303,7 @@ export default function OcrTool() {
               >
                 Mode
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
                   { value: 'image' as OcrMode, label: 'Extract Text', desc: 'Get plain text from image', icon: Image },
                   { value: 'pdf' as OcrMode, label: 'Searchable PDF', desc: 'Add text layer to scanned PDF', icon: FileText },
@@ -321,45 +373,6 @@ export default function OcrTool() {
             </div>
 
             {/* Button moved to action area */}
-          </div>
-        )
-      }
-
-      {/* Extracted text result */}
-      {
-        status === 'done' && state.mode === 'image' && state.extractedText && (
-          <div
-            className="p-6 rounded-2xl space-y-3"
-            style={{
-              backgroundColor: 'rgb(var(--surface-100))',
-              border: '1px solid rgb(var(--surface-300))',
-            }}
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium uppercase tracking-wider" style={{ color: 'rgb(var(--ink-muted))' }}>
-                Extracted Text
-              </p>
-              <button
-                onClick={() => navigator.clipboard.writeText(state.extractedText)}
-                className="text-xs px-3 py-1.5 rounded-lg transition-colors"
-                style={{
-                  backgroundColor: 'rgb(var(--surface-200))',
-                  color: 'rgb(var(--ink-muted))',
-                }}
-              >
-                Copy
-              </button>
-            </div>
-            <pre
-              className="text-sm whitespace-pre-wrap font-mono leading-relaxed max-h-96 overflow-y-auto p-4 rounded-xl"
-              style={{
-                backgroundColor: 'rgb(var(--surface-50))',
-                color: 'rgb(var(--ink))',
-                border: '1px solid rgb(var(--surface-300))',
-              }}
-            >
-              {state.extractedText}
-            </pre>
           </div>
         )
       }
