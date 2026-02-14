@@ -11,7 +11,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     imagemagick \
     ffmpeg \
     calibre \
+    libvips-dev \
+    python3 \
+    make \
+    g++ \
+    curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Fix ImageMagick policy to allow PDF operations
+RUN if [ -f /etc/ImageMagick-6/policy.xml ]; then \
+        sed -i 's/rights="none" pattern="PDF"/rights="read|write" pattern="PDF"/' /etc/ImageMagick-6/policy.xml; \
+    fi
 
 # Set working directory
 WORKDIR /app
@@ -35,12 +45,16 @@ RUN cd client && npm run build
 # Build server
 RUN cd server && npm run build
 
-# Expose port
+# Expose port (Azure will override via WEBSITES_PORT or PORT env var)
 EXPOSE 3000
 
 # Set environment
 ENV NODE_ENV=production
 ENV PORT=3000
+
+# Health check for container orchestration
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:${PORT}/api/health || exit 1
 
 # Start server
 CMD ["npm", "run", "start"]
