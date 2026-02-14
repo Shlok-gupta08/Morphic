@@ -232,7 +232,8 @@ export async function repairPdf(buffer: Buffer): Promise<Buffer> {
     const result2 = await exec(config.bins.qpdf, [
       '--linearize', input, output,
     ]);
-    if (result2.code !== 0) throw new Error(`QPDF repair failed: ${result2.stderr}`);
+    // QPDF exit codes: 0=success, 2=error, 3=warnings (but succeeded)
+    if (result2.code !== 0 && result2.code !== 3) throw new Error(`QPDF repair failed: ${result2.stderr}`);
     return readTempFile(output);
   } finally {
     cleanupTempDir(tmpDir);
@@ -259,14 +260,15 @@ export async function addPassword(buffer: Buffer, userPassword: string, ownerPas
     ];
 
     const result = await exec(config.bins.qpdf, args);
-    if (result.code !== 0) {
+    // QPDF exit codes: 0=success, 2=error, 3=warnings (but succeeded)
+    if (result.code !== 0 && result.code !== 3) {
       // Try alternative arg order for older QPDF versions
       const altArgs = [
         '--encrypt', userPassword, ownerPassword || userPassword, '256', '--',
         input, output,
       ];
       const altResult = await exec(config.bins.qpdf, altArgs);
-      if (altResult.code !== 0) {
+      if (altResult.code !== 0 && altResult.code !== 3) {
         throw new Error(`QPDF encrypt failed: ${altResult.stderr || result.stderr}`);
       }
     }
@@ -295,7 +297,8 @@ export async function removePassword(buffer: Buffer, password: string): Promise<
     ];
 
     const result = await exec(config.bins.qpdf, args);
-    if (result.code !== 0) {
+    // QPDF exit codes: 0=success, 2=error, 3=warnings (but succeeded)
+    if (result.code !== 0 && result.code !== 3) {
       // Try alternative: just copy with password to remove restrictions
       const altArgs = [
         `--password=${password}`,
@@ -303,7 +306,7 @@ export async function removePassword(buffer: Buffer, password: string): Promise<
         input,
       ];
       const altResult = await exec(config.bins.qpdf, altArgs);
-      if (altResult.code !== 0) {
+      if (altResult.code !== 0 && altResult.code !== 3) {
         throw new Error(
           `QPDF decrypt failed. Is the password correct? Error: ${altResult.stderr || result.stderr}`
         );
