@@ -31,6 +31,9 @@ export default function Layout() {
   const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const location = useLocation();
+  
+  // Check if we're on homepage (global drop only works there, not in modules)
+  const isHomePage = location.pathname === '/';
 
   // Handle resizing for mobile check
   useEffect(() => {
@@ -152,6 +155,13 @@ export default function Layout() {
         <div
           className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
           onClick={toggleOpen}
+          onDragOver={(e) => {
+            // @ts-ignore - If dragging from sidebar, collapse it to reveal drop zone
+            if (window.__draggingFromSidebar) {
+              e.preventDefault();
+              setOpen(false);
+            }
+          }}
         />
       )}
 
@@ -371,6 +381,9 @@ export default function Layout() {
       <main 
         className="flex-1 min-h-[calc(100vh-64px)] md:min-h-screen overflow-x-hidden relative"
         onDragOver={(e) => {
+          // Global drop only works on homepage, not inside modules (they have their own drop zones)
+          if (!isHomePage) return;
+          
           // Only handle native file drops, not internal app drags
           if (e.dataTransfer.types.includes('Files') && 
               !e.dataTransfer.types.includes('application/x-file-converter-set-id') &&
@@ -390,6 +403,10 @@ export default function Layout() {
         }}
         onDrop={(e) => {
           setIsGlobalDragOver(false);
+          
+          // Global drop only works on homepage
+          if (!isHomePage) return;
+          
           // Only handle native file drops
           if (e.dataTransfer.files && e.dataTransfer.files.length > 0 &&
               !e.dataTransfer.types.includes('application/x-file-converter-set-id') &&
@@ -403,8 +420,8 @@ export default function Layout() {
           }
         }}
       >
-        {/* Global drop overlay */}
-        {isGlobalDragOver && (
+        {/* Global drop overlay - only on homepage */}
+        {isGlobalDragOver && isHomePage && (
           <div className="absolute inset-0 z-[100] bg-accent-500/10 border-4 border-dashed border-accent-500 rounded-lg pointer-events-none flex items-center justify-center">
             <div className="text-center bg-surface-50/95 p-6 rounded-xl shadow-lg">
               <Upload className="w-12 h-12 text-accent-500 mx-auto mb-2" />
@@ -728,7 +745,15 @@ const DraggableFileItem = memo(function DraggableFileItem({ fileWrapper, idx, se
       <div
         className="flex-1 flex items-center gap-2 min-w-0"
         draggable={true}
-        onDragStart={handleFileDragStart}
+        onDragStart={(e) => {
+          handleFileDragStart(e);
+          // @ts-ignore - Track that we're dragging from sidebar for mobile auto-collapse
+          window.__draggingFromSidebar = true;
+        }}
+        onDragEnd={() => {
+          // @ts-ignore
+          window.__draggingFromSidebar = false;
+        }}
       >
         <FileText className={`w-3.5 h-3.5 shrink-0 ${fileWrapper.isResult ? 'text-[var(--color-purple)]' : 'text-accent-400'}`} />
         <span className="flex-1 truncate text-ink-muted group-hover/file:text-ink transition-colors">
