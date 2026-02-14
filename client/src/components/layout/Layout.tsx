@@ -16,11 +16,15 @@ import ConfirmDialog from '../shared/ConfirmDialog';
 
 export default function Layout() {
   const {
-    isOpen, toggleOpen, sets, addSet, removeSet,
+    isOpen, toggleOpen, setOpen, sets, addSet, removeSet,
     renameSet, addFilesToSet, addResultFileToSet, removeFileFromSet, updateSets,
     moveFileBetweenSets, createSetWithFiles,
-    undo, redo, canUndo, canRedo, clearSets, factoryReset
+    undo, redo, canUndo, canRedo, clearSets, factoryReset,
+    addFilesToDefaultOrNewSet
   } = useFileManager();
+  
+  // Global drop state for visual feedback
+  const [isGlobalDragOver, setIsGlobalDragOver] = useState(false);
 
   // Initialize with all sets expanded by default
   const [expandedSets, setExpandedSets] = useState<Set<string>>(new Set());
@@ -301,7 +305,39 @@ export default function Layout() {
 
         {/* Collapsed View (Desktop Only) */}
         {!isOpen && !isMobile && (
-          <div className="flex-1 flex flex-col items-center pt-3 gap-4">
+          <div 
+            className="flex-1 flex flex-col items-center pt-3 gap-4"
+            onDragOver={(e) => {
+              // Handle native file drops OR module file drops on collapsed sidebar
+              if (e.dataTransfer.types.includes('Files') || 
+                  e.dataTransfer.types.includes('application/x-file-converter-module-files')) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+              }
+            }}
+            onDrop={(e) => {
+              // Handle module files being dropped on collapsed sidebar
+              if (e.dataTransfer.types.includes('application/x-file-converter-module-files')) {
+                e.preventDefault();
+                e.stopPropagation();
+                // @ts-ignore
+                const files = window.__draggedModuleFiles;
+                if (files && files.length > 0) {
+                  createSetWithFiles(files);
+                  setOpen(true); // Expand sidebar
+                }
+                return;
+              }
+              // Handle native file drops
+              if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                e.preventDefault();
+                e.stopPropagation();
+                const files = Array.from(e.dataTransfer.files);
+                addFilesToDefaultOrNewSet(files);
+                setOpen(true); // Expand sidebar
+              }
+            }}
+          >
             {/* Logo */}
             <Link to="/" className="flex items-center justify-center">
               <img src="/icon.png" alt="Morphic" className="w-8 h-8 rounded-lg shrink-0" />
@@ -332,7 +368,51 @@ export default function Layout() {
       </aside>
 
       {/* ─── Main Content ──────────────────────────── */}
-      <main className="flex-1 min-h-[calc(100vh-64px)] md:min-h-screen overflow-x-hidden relative">
+      <main 
+        className="flex-1 min-h-[calc(100vh-64px)] md:min-h-screen overflow-x-hidden relative"
+        onDragOver={(e) => {
+          // Only handle native file drops, not internal app drags
+          if (e.dataTransfer.types.includes('Files') && 
+              !e.dataTransfer.types.includes('application/x-file-converter-set-id') &&
+              !e.dataTransfer.types.includes('application/x-file-converter-result') &&
+              !e.dataTransfer.types.includes('application/x-file-converter-module-files') &&
+              !e.dataTransfer.types.includes('application/x-file-converter-file-idx')) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            setIsGlobalDragOver(true);
+          }
+        }}
+        onDragLeave={(e) => {
+          // Only reset if leaving main content entirely
+          if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+            setIsGlobalDragOver(false);
+          }
+        }}
+        onDrop={(e) => {
+          setIsGlobalDragOver(false);
+          // Only handle native file drops
+          if (e.dataTransfer.files && e.dataTransfer.files.length > 0 &&
+              !e.dataTransfer.types.includes('application/x-file-converter-set-id') &&
+              !e.dataTransfer.types.includes('application/x-file-converter-result') &&
+              !e.dataTransfer.types.includes('application/x-file-converter-module-files')) {
+            e.preventDefault();
+            e.stopPropagation();
+            const files = Array.from(e.dataTransfer.files);
+            addFilesToDefaultOrNewSet(files);
+            setOpen(true); // Expand sidebar to show files
+          }
+        }}
+      >
+        {/* Global drop overlay */}
+        {isGlobalDragOver && (
+          <div className="absolute inset-0 z-[100] bg-accent-500/10 border-4 border-dashed border-accent-500 rounded-lg pointer-events-none flex items-center justify-center">
+            <div className="text-center bg-surface-50/95 p-6 rounded-xl shadow-lg">
+              <Upload className="w-12 h-12 text-accent-500 mx-auto mb-2" />
+              <p className="text-lg font-semibold text-ink">Drop files here</p>
+              <p className="text-sm text-ink-muted">Files will be added to your storage</p>
+            </div>
+          </div>
+        )}
         <Outlet />
       </main>
 
@@ -465,7 +545,7 @@ const FileSetCard = memo(function FileSetCard({ set, expanded, onToggle, onRemov
       >
         {/* Reorder Handle */}
         <div
-          className="w-4 h-4 text-ink-faint hover:text-ink cursor-grab active:cursor-grabbing flex items-center justify-center shrink-0"
+          className="w-4 h-4 text-ink-faint hover:text-ink cursor-grab active:cursor-grabbing flex items-center justify-center shrink-0 touch-none"
           onPointerDown={(e) => setDragControls.start(e)}
         >
           <GripVertical className="w-full h-full" />
@@ -639,14 +719,14 @@ const DraggableFileItem = memo(function DraggableFileItem({ fileWrapper, idx, se
       className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-surface-200/50 hover:bg-surface-200 text-xs group/file cursor-grab active:cursor-grabbing border border-transparent hover:border-surface-300 transition-colors select-none"
     >
       <div
-        className="w-3 h-3 text-ink-faint hover:text-ink cursor-grab active:cursor-grabbing shrink-0"
+        className="w-3 h-3 text-ink-faint hover:text-ink cursor-grab active:cursor-grabbing shrink-0 touch-none"
         onPointerDown={(e) => controls.start(e)}
       >
         <GripVertical className="w-full h-full" />
       </div>
 
       <div
-        className="flex-1 flex items-center gap-2 min-w-0 cursor-grab active:cursor-grabbing"
+        className="flex-1 flex items-center gap-2 min-w-0"
         draggable={true}
         onDragStart={handleFileDragStart}
       >

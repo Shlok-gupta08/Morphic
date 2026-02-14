@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useModuleState } from '@/hooks/useModuleState';
 import { Merge, Plus, Download, Save, Upload } from 'lucide-react';
-import { AnimatePresence, Reorder } from 'framer-motion';
+import { AnimatePresence, Reorder, useDragControls } from 'framer-motion';
 import ToolPageWrapper from '@/components/shared/ToolPageWrapper';
 import ProcessingResult from '@/components/shared/ProcessingResult';
 import { mergePdfs, saveFile, downloadBlob } from '@/services/api';
@@ -14,6 +14,13 @@ interface OrderedFile {
   id: string;
   file: File;
 }
+
+// Utility function - moved outside component for DraggableItem access
+const formatSize = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1048576).toFixed(1)} MB`;
+};
 
 export default function MergePdf() {
   const { sets } = useFileManager(); // Get sets for drag-drop lookup
@@ -159,12 +166,6 @@ const handleRestoreResults = () => {
     results: [...prev.results, ...(prev.closedResults || [])],
     closedResults: []
   }));
-};
-
-const formatSize = (bytes: number) => {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / 1048576).toFixed(1)} MB`;
 };
 
 if (isLoading) return null;
@@ -329,51 +330,79 @@ return (
             >
               <AnimatePresence initial={false}>
                 {state.items.map((item, index) => (
-                  <Reorder.Item
+                  <DraggableItem
                     key={item.id}
-                    value={item}
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className={`flex items-center gap-3 px-4 py-3 cursor-grab active:cursor-grabbing hover:bg-surface-200/50 transition-colors
-                           ${state.selectedInputId === item.id ? 'bg-surface-200/80 border-l-2 border-accent-400' : 'border-l-2 border-transparent'}
-                      `}
-                    onClick={() => setState(prev => ({ ...prev, selectedInputId: item.id, activeResultId: null }))}
-                    whileDrag={{
-                      backgroundColor: 'rgb(var(--surface-200))',
-                      boxShadow: '0 8px 25px rgba(0,0,0,0.5)',
-                      zIndex: 10,
-                    }}
-                  >
-                    <GripVertical className="w-4 h-4 shrink-0 text-surface-400" />
-                    <span
-                      className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 bg-surface-200 text-ink-muted"
-                    >
-                      {index + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm truncate font-medium ${state.selectedInputId === item.id ? 'text-accent-400' : 'text-ink'}`}>
-                        {item.file.name}
-                      </p>
-                      <p className="text-[10px] text-ink-faint">
-                        {formatSize(item.file.size)}
-                      </p>
-                    </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); removeItem(item.id); }}
-                      className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors hover:bg-surface-300 text-ink-faint hover:text-red-400"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </Reorder.Item>
+                    item={item}
+                    index={index}
+                    isSelected={state.selectedInputId === item.id}
+                    onSelect={() => setState(prev => ({ ...prev, selectedInputId: item.id, activeResultId: null }))}
+                    onRemove={() => removeItem(item.id)}
+                  />
                 ))}
               </AnimatePresence>
             </Reorder.Group>
           </div>
-          <p className="text-center text-[10px] text-ink-faint">Drag items to reorder</p>
+          <p className="text-center text-[10px] text-ink-faint">Drag handle to reorder</p>
         </div>
       )}
     </div>
   </ToolPageWrapper>
 );
+}
+
+// Separate component for draggable items to allow useDragControls per item
+function DraggableItem({ item, index, isSelected, onSelect, onRemove }: {
+  item: { id: string; file: File };
+  index: number;
+  isSelected: boolean;
+  onSelect: () => void;
+  onRemove: () => void;
+}) {
+  const controls = useDragControls();
+  
+  return (
+    <Reorder.Item
+      value={item}
+      dragListener={false}
+      dragControls={controls}
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      className={`flex items-center gap-3 px-4 py-3 hover:bg-surface-200/50 transition-colors
+             ${isSelected ? 'bg-surface-200/80 border-l-2 border-accent-400' : 'border-l-2 border-transparent'}
+        `}
+      onClick={onSelect}
+      whileDrag={{
+        backgroundColor: 'rgb(var(--surface-200))',
+        boxShadow: '0 8px 25px rgba(0,0,0,0.5)',
+        zIndex: 10,
+      }}
+    >
+      <div 
+        className="w-5 h-5 shrink-0 text-surface-400 cursor-grab active:cursor-grabbing touch-none"
+        onPointerDown={(e) => controls.start(e)}
+      >
+        <GripVertical className="w-4 h-4" />
+      </div>
+      <span
+        className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 bg-surface-200 text-ink-muted"
+      >
+        {index + 1}
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className={`text-sm truncate font-medium ${isSelected ? 'text-accent-400' : 'text-ink'}`}>
+          {item.file.name}
+        </p>
+        <p className="text-[10px] text-ink-faint">
+          {formatSize(item.file.size)}
+        </p>
+      </div>
+      <button
+        onClick={(e) => { e.stopPropagation(); onRemove(); }}
+        className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors hover:bg-surface-300 text-ink-faint hover:text-red-400"
+      >
+        <X className="w-4 h-4" />
+      </button>
+    </Reorder.Item>
+  );
 }

@@ -41,6 +41,10 @@ interface FileManagerContextType {
   getFilesFlat: () => File[];
   updateSets: (sets: FileSet[]) => void;
   createSetWithFiles: (files: File[]) => void;
+  /** Adds files to Set 1 if it's empty and default, otherwise creates a new set */
+  addFilesToDefaultOrNewSet: (files: File[]) => void;
+  /** Check if sidebar is in default state (1 empty set named "Set 1") */
+  isDefaultState: () => boolean;
 }
 
 const FileManagerContext = createContext<FileManagerContextType | null>(null);
@@ -194,6 +198,24 @@ export function FileManagerProvider({ children }: { children: ReactNode }) {
     pushHistory([...sets, newSet]);
   }, [sets, pushHistory]);
 
+  /** Check if sidebar is in default state (1 set named "Set 1" with no files) */
+  const isDefaultState = useCallback(() => {
+    return sets.length === 1 && 
+           sets[0].label === 'Set 1' && 
+           sets[0].files.length === 0;
+  }, [sets]);
+
+  /** Adds files to Set 1 if it's empty and default, otherwise creates a new set */
+  const addFilesToDefaultOrNewSet = useCallback((files: File[]) => {
+    if (isDefaultState()) {
+      // Add to the existing Set 1
+      addFilesToSet(sets[0].id, files);
+    } else {
+      // Create a new set with the files
+      createSetWithFiles(files);
+    }
+  }, [sets, isDefaultState, addFilesToSet, createSetWithFiles]);
+
   const removeFileFromSet = useCallback((setId: string, fileIndex: number) => {
     pushHistory(sets.map(s =>
       s.id === setId ? { ...s, files: s.files.filter((_, i) => i !== fileIndex) } : s
@@ -260,7 +282,8 @@ export function FileManagerProvider({ children }: { children: ReactNode }) {
       addFilesToSet, addResultFileToSet, removeFileFromSet,
       reorderSets, reorderFilesInSet, moveFileBetweenSets,
       mergeSets, getFilesFlat,
-      updateSets, createSetWithFiles
+      updateSets, createSetWithFiles,
+      addFilesToDefaultOrNewSet, isDefaultState
     }}>
       {children}
     </FileManagerContext.Provider>

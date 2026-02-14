@@ -92,6 +92,7 @@ function ToolCard({ tool, index }: { tool: typeof TOOLS[number]; index: number }
       to={tool.path}
       className="tool-card group"
       style={{ animationDelay: `${index * 0.05}s` }}
+      draggable={false}
     >
       <div className="tool-card-icon">
         <tool.icon className="w-6 h-6" />
